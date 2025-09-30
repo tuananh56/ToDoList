@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { groupService } from "../../services/groupService";
 import { taskService } from "../../services/taskService";
+import toast from "react-hot-toast";
 import { Group, User, Task } from "../../types";
 
 export default function GroupDetail() {
@@ -14,6 +15,38 @@ export default function GroupDetail() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"createdAt" | "deadline" | "status">(
+    "createdAt"
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  const filteredTasks = tasks
+    .filter(
+      (t) =>
+        t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (t.description &&
+          t.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
+    .sort((a, b) => {
+      let valA: any;
+      let valB: any;
+
+      if (sortBy === "createdAt") {
+        valA = new Date(a.createdAt).getTime();
+        valB = new Date(b.createdAt).getTime();
+      } else if (sortBy === "deadline") {
+        valA = a.deadline ? new Date(a.deadline).getTime() : Infinity;
+        valB = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+      } else {
+        // status
+        const order = ["pending", "in_progress", "completed"];
+        valA = order.indexOf(a.status);
+        valB = order.indexOf(b.status);
+      }
+
+      return sortOrder === "asc" ? valA - valB : valB - valA;
+    });
 
   // Form thêm thành viên
   const [keyword, setKeyword] = useState("");
@@ -135,6 +168,12 @@ export default function GroupDetail() {
     }
   };
 
+  const statusText: Record<string, string> = {
+    pending: "Chưa làm",
+    in_progress: "Đang làm",
+    completed: "Đã làm",
+  };
+
   // ------------------- Group actions -------------------
   const handleAddMember = async () => {
     if (!keyword.trim()) return alert("Nhập username hoặc email");
@@ -172,6 +211,11 @@ export default function GroupDetail() {
   console.log("currentUserId:", currentUserId);
   console.log("leaderId:", group.leader?.id);
   console.log("isEnded:", group.isEnded);
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t) => t.status === "completed").length;
+  const progress =
+    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -261,6 +305,49 @@ export default function GroupDetail() {
           </button>
         </div>
       )}
+
+      {/* Progress Bar */}
+      <div className="mb-6">
+        <p className="mb-2 font-semibold text-gray-700">
+          Tiến độ: {completedTasks}/{totalTasks} công việc ({progress}%)
+        </p>
+        <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+          <div
+            className="h-4 bg-green-500 transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Search & Sort */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Tìm kiếm công việc..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="border rounded-lg px-4 py-2 flex-1 focus:ring-2 focus:ring-blue-400"
+        />
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+          className="border rounded-lg px-3 py-2"
+        >
+          <option value="createdAt">Ngày tạo</option>
+          <option value="deadline">Deadline</option>
+          <option value="status">Trạng thái</option>
+        </select>
+
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as any)}
+          className="border rounded-lg px-3 py-2"
+        >
+          <option value="asc">Tăng dần</option>
+          <option value="desc">Giảm dần</option>
+        </select>
+      </div>
 
       {/* Form tạo/sửa task */}
       {!group.isEnded && (
@@ -358,84 +445,90 @@ export default function GroupDetail() {
           <p className="text-gray-600">Chưa có công việc nào</p>
         ) : (
           <ul className="space-y-4">
-            {tasks.slice((currentPage - 1) * 5, currentPage * 5).map((t) => (
-              <li
-                key={t.id}
-                className="border rounded-lg p-5 bg-gray-50 hover:shadow-lg transition"
-              >
-                <p className="font-bold text-lg text-gray-900">{t.title}</p>
-                {t.description && (
-                  <p className="text-gray-600 mb-1">{t.description}</p>
-                )}
-                {t.assignee && (
-                  <p className="text-gray-700 mb-1">
-                    Thực hiện:{" "}
-                    <span className="font-semibold text-gray-900">
-                      {t.assignee.username}
+            {filteredTasks
+              .slice((currentPage - 1) * 5, currentPage * 5)
+              .map((t) => (
+                <li
+                  key={t.id}
+                  className="border rounded-lg p-5 bg-gray-50 hover:shadow-lg transition"
+                >
+                  <p className="font-bold text-lg text-gray-900">{t.title}</p>
+                  {t.description && (
+                    <p className="text-gray-600 mb-1">{t.description}</p>
+                  )}
+                  {t.assignee && (
+                    <p className="text-gray-700 mb-1">
+                      Thực hiện:{" "}
+                      <span className="font-semibold text-gray-900">
+                        {t.assignee.username}
+                      </span>
+                    </p>
+                  )}
+                  {t.deadline && (
+                    <p className="text-gray-700 mb-1">
+                      Deadline:{" "}
+                      <span className="font-medium text-red-600">
+                        {new Date(t.deadline).toLocaleString()}
+                      </span>
+                    </p>
+                  )}
+                  <p className="mb-3 text-gray-700">
+                    Trạng thái:{" "}
+                    <span className="font-medium">
+                      {statusText[t.status] || t.status}
                     </span>
                   </p>
-                )}
-                {t.deadline && (
-                  <p className="text-gray-700 mb-1">
-                    Deadline:{" "}
-                    <span className="font-medium text-red-600">
-                      {new Date(t.deadline).toLocaleString()}
-                    </span>
-                  </p>
-                )}
-                <p className="mb-3 text-gray-700">
-                  Trạng thái:{" "}
-                  <span className="font-medium capitalize">{t.status}</span>
-                </p>
 
-                {!group.isEnded && canUpdateStatus(t) && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {["pending", "in_progress", "completed"].map((status) => (
+                  {/* Thành viên có thể cập nhật trạng thái nếu là assignee hoặc leader */}
+                  {!group.isEnded && canUpdateStatus(t) && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {["pending", "in_progress", "completed"].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => handleUpdateStatus(t.id, status)}
+                          className={`px-3 py-1 rounded-lg font-medium transition ${
+                            t.status === status
+                              ? status === "pending"
+                                ? "bg-yellow-500 text-white"
+                                : status === "in_progress"
+                                ? "bg-blue-600 text-white"
+                                : "bg-green-600 text-white"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
+                        >
+                          {status === "pending"
+                            ? "Chưa làm"
+                            : status === "in_progress"
+                            ? "Đang làm"
+                            : "Đã làm"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Nút sửa/xóa task */}
+                  {!group.isEnded && currentUserId === group.leader?.id && (
+                    <div className="flex gap-3 mt-2">
                       <button
-                        key={status}
-                        onClick={() => handleUpdateStatus(t.id, status)}
-                        className={`px-3 py-1 rounded-lg font-medium transition ${
-                          t.status === status
-                            ? status === "pending"
-                              ? "bg-yellow-500 text-white"
-                              : status === "in_progress"
-                              ? "bg-blue-600 text-white"
-                              : "bg-green-600 text-white"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        }`}
+                        onClick={() => handleEditTask(t)}
+                        className="px-3 py-1 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition"
                       >
-                        {status === "pending"
-                          ? "Chưa làm"
-                          : status === "in_progress"
-                          ? "Đang làm"
-                          : "Đã làm"}
+                        Sửa
                       </button>
-                    ))}
-                  </div>
-                )}
+                      <button
+                        onClick={() => handleDeleteTask(t.id)}
+                        className="px-3 py-1 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  )}
 
-                {!group.isEnded && (
-                  <div className="flex gap-3 mt-2">
-                    <button
-                      onClick={() => handleEditTask(t)}
-                      className="px-3 py-1 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 transition"
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTask(t.id)}
-                      className="px-3 py-1 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition"
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                )}
-
-                <p className="text-sm text-gray-400 mt-2">
-                  Tạo lúc: {new Date(t.createdAt).toLocaleString()}
-                </p>
-              </li>
-            ))}
+                  <p className="text-sm text-gray-400 mt-2">
+                    Tạo lúc: {new Date(t.createdAt).toLocaleString()}
+                  </p>
+                </li>
+              ))}
           </ul>
         )}
 

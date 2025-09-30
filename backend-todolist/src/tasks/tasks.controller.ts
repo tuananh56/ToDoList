@@ -78,4 +78,20 @@ export class TasksController {
     const userId = req.user.sub || req.user.id;
     return this.tasksService.deleteTask(taskId, userId);
   }
+
+  // ===================== Thống kê nhanh =====================
+  @Get('stats')
+  async getStats() {
+    return this.tasksService.getStats();
+  }
+
+  // ===================== Tạo task nhanh (không cần group) =====================
+  @Post('quick-create')
+  async quickCreate(
+    @Body() body: { title: string; deadline?: Date },
+    @Req() req: any,
+  ) {
+    const userId = req.user.sub || req.user.id;
+    return this.tasksService.quickCreate(body, userId);
+  }
 }

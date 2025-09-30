@@ -175,4 +175,30 @@ export class TasksService {
     await this.taskRepo.delete(taskId);
     return { message: 'Xóa task thành công' };
   }
+
+  // ===================== Thống kê nhanh =====================
+async getStats() {
+  const pending = await this.taskRepo.count({ where: { status: 'pending' } });
+  const inProgress = await this.taskRepo.count({ where: { status: 'in_progress' } });
+  const completed = await this.taskRepo.count({ where: { status: 'completed' } });
+  const late = await this.taskRepo.count({ where: { status: 'late' } });
+
+  return { pending, inProgress, completed, late };
+}
+
+// ===================== Tạo task nhanh =====================
+async quickCreate(
+  body: { title: string; deadline?: Date },
+  userId: number,
+): Promise<Task> {
+  const task = this.taskRepo.create({
+    title: body.title,
+    status: 'pending',
+    deadline: body.deadline ? new Date(body.deadline) : null,
+    assignee: { id: userId } as any, // gán người tạo là assignee
+  });
+
+  return this.taskRepo.save(task);
+}
+
 }
