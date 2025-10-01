@@ -1,12 +1,13 @@
 // src/services/taskService.ts
 import api from "../utils/axios";
-import { Task } from "../types";
+import { Task, TaskPriority } from "../types";
 
 interface CreateTaskDto {
   title: string;
   description?: string;
   assigneeId?: number;
   deadline?: string; // ISO string
+  priority?: TaskPriority; // ✅ thêm priority
 }
 
 interface UpdateTaskDto {
@@ -15,6 +16,7 @@ interface UpdateTaskDto {
   assigneeId?: number;
   deadline?: string; // ISO string
   status?: "pending" | "in_progress" | "completed" | "late";
+  priority?: TaskPriority; // ✅ thêm priority
 }
 
 export const taskService = {
@@ -38,7 +40,7 @@ export const taskService = {
 
   updateTask: async (
     taskId: number,
-    dto: Partial<CreateTaskDto>
+    dto: Partial<UpdateTaskDto>
   ): Promise<Task> => {
     const res = await api.patch(`/tasks/${taskId}`, dto);
     return res.data;

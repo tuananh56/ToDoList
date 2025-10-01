@@ -9,6 +9,7 @@ import { Group } from '../groups/group.entity';
 import { User } from '../users/user.entity';
 
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'late';
+export type TaskPriority = 'low' | 'medium' | 'high';
 
 @Entity()
 export class Task {
@@ -28,8 +29,15 @@ export class Task {
   })
   status: TaskStatus;
 
+  @Column({
+    type: 'enum',
+    enum: ['low', 'medium', 'high'],
+    default: 'medium',
+  })
+  priority: TaskPriority;
+
   @Column({ type: 'timestamp', nullable: true })
-  deadline?: Date | null; // ✅ sửa undefined thành Date | null
+  deadline?: Date | null;
 
   @ManyToOne(() => Group, (group) => group.tasks, { onDelete: 'CASCADE' })
   group: Group;

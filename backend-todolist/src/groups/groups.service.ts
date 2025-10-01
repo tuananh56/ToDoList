@@ -113,4 +113,48 @@ export class GroupsService {
     if (!group) throw new NotFoundException('Group not found');
     return group;
   }
+
+   // ===================== Sửa nhóm =====================
+  async updateGroup(
+    groupId: number,
+    dto: Partial<{ name: string; description?: string }>,
+    leaderId: number,
+  ) {
+    const group = await this.groupRepo.findOne({
+      where: { id: groupId },
+      relations: ['leader'],
+    });
+
+    if (!group) throw new NotFoundException('Group not found');
+
+    if (group.leader.id !== leaderId) {
+      throw new ForbiddenException('Only leader can update the group');
+    }
+
+    if (dto.name !== undefined) group.name = dto.name;
+    if (dto.description !== undefined) group.description = dto.description;
+
+    const updatedGroup = await this.groupRepo.save(group);
+    this.logger.log(`Group ${groupId} updated by leader ${leaderId}`);
+    return updatedGroup;
+  }
+
+  // ===================== Xóa nhóm =====================
+  async deleteGroup(groupId: number, leaderId: number) {
+    const group = await this.groupRepo.findOne({
+      where: { id: groupId },
+      relations: ['leader'],
+    });
+
+    if (!group) throw new NotFoundException('Group not found');
+
+    if (group.leader.id !== leaderId) {
+      throw new ForbiddenException('Only leader can delete the group');
+    }
+
+    await this.groupRepo.delete(groupId);
+    this.logger.log(`Group ${groupId} deleted by leader ${leaderId}`);
+    return { message: 'Group deleted successfully' };
+  }
 }
+

@@ -7,7 +7,9 @@ interface Props {
   token: string;
   groups: Group[];
   setGroups: (groups: Group[]) => void;
+  currentUser: { id: number; username: string };
 }
+
 
 export default function GroupList({ token, groups, setGroups }: Props) {
   const router = useRouter();

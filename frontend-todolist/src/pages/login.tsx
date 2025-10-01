@@ -1,14 +1,25 @@
-// pages/login.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { loginApi, LoginResponse } from "../services/auth";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function Login() {
   const router = useRouter();
+
+  // 🟢 State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [username, setUsername] = useState<string | null>(null); // ✅ Dùng cho header
 
+  // Lấy username từ localStorage khi load trang
+  useEffect(() => {
+    const saved = localStorage.getItem("username");
+    if (saved) setUsername(saved);
+  }, []);
+
+  // 🟢 Submit login
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -20,7 +31,7 @@ export default function Login() {
       localStorage.setItem("username", data.user.username);
       localStorage.setItem("userId", data.user.id.toString());
 
-      router.push("/groups");
+      router.push("/");
     } catch (err: any) {
       console.error("Login error:", err.response || err);
       setError(err.response?.data?.message || "Email hoặc mật khẩu không đúng");
@@ -28,74 +39,141 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-purple-700 to-blue-600 animate-fadeIn">
-      {/* Login Card */}
-      <div className="bg-white shadow-2xl rounded-3xl p-10 w-full max-w-lg relative overflow-hidden">
-        {/* Decorative Background Shapes */}
+    <div className="min-h-screen flex flex-col bg-gradient-to-r from-purple-700 to-blue-600 animate-fadeIn">
+      {/* ✅ Header */}
+      <header className="bg-white shadow-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="flex justify-between items-center py-4">
+            <h2
+              onClick={() => router.push("/")}
+              className="cursor-pointer text-3xl font-extrabold bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent hover:opacity-80 transition"
+            >
+              ToDoList
+            </h2>
+
+            {/* Navigation */}
+            <nav className="flex flex-nowrap gap-[12px] overflow-x-auto">
+              <button
+                onClick={() => router.push("/")}
+                className="px-[16px] py-[10px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-[600] text-[15px] rounded-[6px] shadow-[0_2px_6px_rgba(37,99,235,0.25)] transition-all"
+              >
+                🏠 Trang Chủ
+              </button>
+
+              {username ? (
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("username");
+                    setUsername(null);
+                    router.push("/login");
+                  }}
+                  className="px-[16px] py-[10px] bg-red-500 hover:bg-red-600 text-white font-[600] text-[15px] rounded-[6px] shadow-[0_2px_6px_rgba(239,68,68,0.25)] transition-all"
+                >
+                  🚪 Đăng Xuất
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push("/register")}
+                    className="px-[16px] py-[10px] bg-[#10B981] hover:bg-[#059669] text-white font-[600] text-[15px] rounded-[6px] shadow-[0_2px_6px_rgba(16,185,129,0.25)] transition-all"
+                  >
+                    📝 Đăng Ký
+                  </button>
+                  <button
+                    onClick={() => router.push("/about")}
+                    className="px-[16px] py-[10px] bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-[600] text-[15px] rounded-[6px] shadow-md transition-all"
+                  >
+                    ℹ️ Giới Thiệu
+                  </button>
+                </>
+              )}
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* 🔥 Main Login Form */}
+      <div className="flex-grow flex items-center justify-center relative">
+        {/* Background Decorative Blobs */}
         <div className="absolute -top-20 -left-20 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-2xl opacity-70 animate-blob"></div>
         <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-2xl opacity-70 animate-blob animation-delay-2000"></div>
 
-        <h2 className="text-4xl font-extrabold text-center text-gray-800 mb-8">
-          Đăng Nhập
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-          {/* Email Input */}
-          <div>
-            <label className="block text-gray-700 mb-2 font-medium">Email</label>
-            <input
-              type="email"
-              placeholder="Nhập email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-              required
-            />
-          </div>
-
-          {/* Password Input */}
-          <div>
-            <label className="block text-gray-700 mb-2 font-medium">Mật khẩu</label>
-            <input
-              type="password"
-              placeholder="Nhập mật khẩu"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-              required
-            />
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <p className="text-red-500 text-sm mt-2 text-center">{error}</p>
-          )}
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all duration-300"
-          >
+        <div className="bg-white shadow-2xl rounded-3xl p-10 w-full max-w-lg relative z-10">
+          <h2 className="text-4xl font-extrabold text-center text-gray-800 mb-8">
             Đăng Nhập
-          </button>
-        </form>
+          </h2>
 
-        {/* Register Link */}
-        <p className="mt-6 text-center text-sm text-gray-500 relative z-10">
-          Chưa có tài khoản?{" "}
-          <span
-            className="text-purple-600 cursor-pointer hover:underline"
-            onClick={() => router.push("/register")}
-          >
-            Đăng ký
-          </span>
-        </p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email */}
+            <div>
+              <label className="block text-gray-700 mb-2 font-medium">
+                Email
+              </label>
+              <input
+                type="email"
+                placeholder="Nhập email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                required
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-gray-700 mb-2 font-medium">
+                Mật khẩu
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Nhập mật khẩu"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                  required
+                />
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-4 flex items-center text-gray-500 cursor-pointer hover:text-purple-500"
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </span>
+              </div>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <p className="text-red-500 text-sm mt-2 text-center">{error}</p>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all duration-300"
+            >
+              Đăng Nhập
+            </button>
+          </form>
+
+          {/* Link to Register */}
+          <p className="mt-6 text-center text-sm text-gray-500">
+            Chưa có tài khoản?{" "}
+            <span
+              className="text-purple-600 cursor-pointer hover:underline"
+              onClick={() => router.push("/register")}
+            >
+              Đăng ký
+            </span>
+          </p>
+        </div>
       </div>
 
-      {/* Tailwind Animations */}
+      {/* Animation Styles */}
       <style jsx>{`
         @keyframes blob {
-          0%, 100% {
+          0%,
+          100% {
             transform: translate(0px, 0px) scale(1);
           }
           33% {
@@ -111,14 +189,11 @@ export default function Login() {
         .animation-delay-2000 {
           animation-delay: 2s;
         }
-        .animate-fadeIn {
-          animation: fadeIn 1s ease-in;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
       `}</style>
+      {/* ⭐ Footer */}
+      <footer className="bg-white/10 text-white text-center py-4">
+        © {new Date().getFullYear()} ToDoList - Quản lý công việc hiệu quả
+      </footer>
     </div>
   );
 }

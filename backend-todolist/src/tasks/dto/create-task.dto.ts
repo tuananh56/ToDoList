@@ -1,5 +1,4 @@
-// src/tasks/dto/create-task.dto.ts
-import { IsNotEmpty, IsOptional, IsNumber, IsDateString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsNumber, IsDateString, IsEnum } from 'class-validator';
 
 export class CreateTaskDto {
   @IsNotEmpty()
@@ -14,5 +13,9 @@ export class CreateTaskDto {
 
   @IsOptional()
   @IsDateString()
-  deadline?: string; // nhận dạng chuỗi ISO từ client
+  deadline?: string;
+
+  @IsOptional()
+  @IsEnum(['low', 'medium', 'high'])
+  priority?: 'low' | 'medium' | 'high';
 }

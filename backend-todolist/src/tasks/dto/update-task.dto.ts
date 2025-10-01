@@ -1,5 +1,4 @@
-// src/tasks/dto/update-task.dto.ts
-import { IsOptional, IsString, IsNumber, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsDateString, IsEnum } from 'class-validator';
 
 export class UpdateTaskDto {
   @IsOptional()
@@ -20,5 +19,9 @@ export class UpdateTaskDto {
 
   @IsOptional()
   @IsString()
-  status?: string; // pending | in_progress | completed | late
+  status?: string;
+
+  @IsOptional()
+  @IsEnum(['low', 'medium', 'high'])
+  priority?: 'low' | 'medium' | 'high';
 }

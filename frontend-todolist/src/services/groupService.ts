@@ -18,7 +18,6 @@ export const groupService = {
     return res.data;
   },
 
-  // 👇 Đổi từ userId sang keyword
   addMember: async (groupId: number, keyword: string) => {
     const res = await api.post(`/groups/${groupId}/add-member`, { keyword });
     return res.data;
@@ -27,5 +26,16 @@ export const groupService = {
   endGroup: async (groupId: number) => {
     const res = await api.post(`/groups/${groupId}/end`);
     return res.data;
+  },
+
+  // ⭐ Mới: sửa nhóm
+  editGroup: async (groupId: number, name: string, description?: string): Promise<Group> => {
+    const res = await api.put(`/groups/${groupId}`, { name, description });
+    return res.data;
+  },
+
+  // ⭐ Mới: xóa nhóm
+  deleteGroup: async (groupId: number): Promise<void> => {
+    await api.delete(`/groups/${groupId}`);
   },
 };

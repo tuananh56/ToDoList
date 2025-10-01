@@ -1,4 +1,3 @@
-// src/tasks/tasks.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -7,13 +6,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Task, TaskStatus } from './task.entity';
+import { Task, TaskStatus, TaskPriority } from './task.entity';
 import { Group } from '../groups/group.entity';
 import { UsersService } from '../users/users.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { User } from '../users/user.entity';
 import { UpdateTaskDto } from './dto/update-task.dto';
-
 
 @Injectable()
 export class TasksService {
@@ -35,14 +33,12 @@ export class TasksService {
       `createTask called for groupId=${group.id} by userId=${creatorId}`,
     );
 
-    // Kiểm tra quyền: chỉ leader hoặc member mới tạo task
     const isMember = group.members.some((m) => m.id === creatorId);
     if (!isMember && group.leader.id !== creatorId) {
       this.logger.warn(`User ${creatorId} không thuộc group ${group.id}`);
       throw new ForbiddenException('Bạn không thuộc group này');
     }
 
-    // Tìm assignee nếu có
     let assignee: User | null = null;
     if (dto.assigneeId) {
       assignee = await this.usersService.findById(dto.assigneeId);
@@ -52,30 +48,27 @@ export class TasksService {
       }
     }
 
-    // Tạo task mới
     const task = this.taskRepo.create({
       title: dto.title,
       description: dto.description,
       group,
       assignee: assignee || null,
-      status: 'pending', // mặc định
-      deadline: dto.deadline ? new Date(dto.deadline) : null, // chuyển chuỗi sang Date
+      status: 'pending',
+      deadline: dto.deadline ? new Date(dto.deadline) : null,
+      priority: dto.priority || 'medium', // thêm priority
     });
 
     const savedTask = await this.taskRepo.save(task);
 
-    // Lấy lại task vừa tạo kèm relations
     const taskWithRelations = await this.taskRepo.findOne({
       where: { id: savedTask.id },
       relations: ['assignee', 'group'],
     });
 
     if (!taskWithRelations) {
-      //this.logger.error(`Task vừa tạo không tìm thấy: id=${savedTask.id}`);
       throw new NotFoundException('Task vừa tạo không tìm thấy');
     }
 
-    //this.logger.log(`Task ${savedTask.id} created for group ${group.id}`);
     return taskWithRelations;
   }
 
@@ -110,10 +103,11 @@ export class TasksService {
       throw new ForbiddenException('Bạn không có quyền cập nhật task này');
     }
 
-    task.status = status; // cập nhật trạng thái
+    task.status = status;
     return this.taskRepo.save(task);
   }
 
+  // ===================== Cập nhật task =====================
   async updateTask(
     taskId: number,
     userId: number,
@@ -128,7 +122,6 @@ export class TasksService {
     const isLeader = task.group.leader.id === userId;
     const isAssignee = task.assignee?.id === userId;
 
-    // Chỉ leader mới được sửa tất cả, assignee chỉ được đổi status
     if (!isLeader && !isAssignee) {
       throw new ForbiddenException('Bạn không có quyền sửa task này');
     }
@@ -147,7 +140,6 @@ export class TasksService {
     }
 
     if (dto.status !== undefined) {
-      // Assignee chỉ được cập nhật status
       if (!isLeader && dto.status) {
         task.status = dto.status as any;
       } else if (isLeader) {
@@ -155,8 +147,14 @@ export class TasksService {
       }
     }
 
+    if (dto.priority !== undefined) {
+      task.priority = dto.priority;
+    }
+
     return this.taskRepo.save(task);
   }
+
+  // ===================== Xóa task =====================
   async deleteTask(
     taskId: number,
     userId: number,
@@ -177,28 +175,28 @@ export class TasksService {
   }
 
   // ===================== Thống kê nhanh =====================
-async getStats() {
-  const pending = await this.taskRepo.count({ where: { status: 'pending' } });
-  const inProgress = await this.taskRepo.count({ where: { status: 'in_progress' } });
-  const completed = await this.taskRepo.count({ where: { status: 'completed' } });
-  const late = await this.taskRepo.count({ where: { status: 'late' } });
+  async getStats() {
+    const pending = await this.taskRepo.count({ where: { status: 'pending' } });
+    const inProgress = await this.taskRepo.count({ where: { status: 'in_progress' } });
+    const completed = await this.taskRepo.count({ where: { status: 'completed' } });
+    const late = await this.taskRepo.count({ where: { status: 'late' } });
 
-  return { pending, inProgress, completed, late };
-}
+    return { pending, inProgress, completed, late };
+  }
 
-// ===================== Tạo task nhanh =====================
-async quickCreate(
-  body: { title: string; deadline?: Date },
-  userId: number,
-): Promise<Task> {
-  const task = this.taskRepo.create({
-    title: body.title,
-    status: 'pending',
-    deadline: body.deadline ? new Date(body.deadline) : null,
-    assignee: { id: userId } as any, // gán người tạo là assignee
-  });
+  // ===================== Tạo task nhanh =====================
+  async quickCreate(
+    body: { title: string; deadline?: Date; priority?: TaskPriority },
+    userId: number,
+  ): Promise<Task> {
+    const task = this.taskRepo.create({
+      title: body.title,
+      status: 'pending',
+      deadline: body.deadline ? new Date(body.deadline) : null,
+      priority: body.priority || 'medium',
+      assignee: { id: userId } as any,
+    });
 
-  return this.taskRepo.save(task);
-}
-
+    return this.taskRepo.save(task);
+  }
 }

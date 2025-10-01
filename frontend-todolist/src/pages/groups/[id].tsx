@@ -54,6 +54,7 @@ export default function GroupDetail() {
   // Form tạo/sửa task
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDesc, setNewTaskDesc] = useState("");
+  const [username, setUsername] = useState<string | null>(null);
   const [newTaskAssigneeId, setNewTaskAssigneeId] = useState<
     number | undefined
   >(undefined);
@@ -200,6 +201,8 @@ export default function GroupDetail() {
     }
   };
 
+  
+
   // ------------------- Helpers -------------------
   const canUpdateStatus = (task: Task) =>
     !!group?.leader &&
@@ -220,37 +223,57 @@ export default function GroupDetail() {
   return (
     <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
-        <button
-          onClick={() => router.push("/")}
-          className="flex items-center gap-2 bg-gray-700 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-800 transition"
-        >
-          ← Quay lại trang chủ
-        </button>
-
-        <div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            {group.name}
-          </h1>
-          <p className="text-lg text-gray-700">
-            Leader:{" "}
-            <span className="text-blue-600 font-semibold">
-              {group.leader?.username}
-            </span>{" "}
-            <span className="text-gray-500">({group.leader?.email})</span>
-          </p>
-          <p className="mt-1 text-sm">
-            Trạng thái:{" "}
-            <span
-              className={`font-semibold ${
-                group.isEnded ? "text-red-600" : "text-green-600"
-              }`}
+      <header className="bg-white shadow-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="flex justify-between items-center py-4">
+            {/* Logo */}
+            <h2
+              onClick={() => router.push("/")}
+              className="cursor-pointer text-3xl font-extrabold bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent"
             >
-              {group.isEnded ? "Đã kết thúc" : "Đang hoạt động"}
-            </span>
-          </p>
+              ToDoList
+            </h2>
+
+            {/* Navigation */}
+            <nav className="flex flex-nowrap gap-[12px] overflow-x-auto">
+              {username ? (
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("username");
+                    setUsername(null);
+                    router.push("/login"); // hoặc "/" nếu muốn
+                  }}
+                  className="px-[16px] py-[10px] bg-red-500 hover:bg-red-600 text-white font-[600] text-[15px] rounded-[6px] shadow-[0_2px_6px_rgba(239,68,68,0.25)] transition-all"
+                >
+                  🚪 Đăng Xuất
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push("/groups")}
+                    className="flex items-center gap-2 px-[16px] py-[10px] bg-[#14B8A6] hover:bg-[#0D9488] text-white font-[600] text-[15px] rounded-[6px] shadow-[0_2px_6px_rgba(20,184,166,0.25)] transition-all"
+                  >
+                    👥 Danh Sách Nhóm 
+                  </button>
+
+                  <button
+                    onClick={() => router.push("/register")}
+                    className="px-[16px] py-[10px] bg-[#10B981] hover:bg-[#059669] text-white font-[600] text-[15px] rounded-[6px] shadow-[0_2px_6px_rgba(16,185,129,0.25)] transition-all"
+                  >
+                    📝 Đăng Ký
+                  </button>
+                  <button
+                    onClick={() => router.push("/about")}
+                    className="px-[16px] py-[10px] bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-[600] text-[15px] rounded-[6px] shadow-md transition-all"
+                  >
+                    ℹ️ Giới Thiệu
+                  </button>
+                </>
+              )}
+            </nav>
+          </div>
         </div>
-      </div>
+      </header>
 
       {/* Thành viên */}
       <div className="bg-white p-5 rounded-lg shadow mb-6">
@@ -441,6 +464,7 @@ export default function GroupDetail() {
         <h2 className="text-2xl font-semibold mb-4 text-gray-900">
           Danh sách công việc
         </h2>
+
         {tasks.length === 0 ? (
           <p className="text-gray-600">Chưa có công việc nào</p>
         ) : (
@@ -452,10 +476,21 @@ export default function GroupDetail() {
                   key={t.id}
                   className="border rounded-lg p-5 bg-gray-50 hover:shadow-lg transition"
                 >
-                  <p className="font-bold text-lg text-gray-900">{t.title}</p>
+                  {/* Tên công việc */}
+                  <p className="font-bold text-xl text-gray-900 mb-1">
+                    Tên công việc:{" "}
+                    <span className="font-normal">{t.title}</span>
+                  </p>
+
+                  {/* Mô tả */}
                   {t.description && (
-                    <p className="text-gray-600 mb-1">{t.description}</p>
+                    <p className="text-gray-700 mb-2">
+                      Mô tả:{" "}
+                      <span className="font-normal">{t.description}</span>
+                    </p>
                   )}
+
+                  {/* Người thực hiện */}
                   {t.assignee && (
                     <p className="text-gray-700 mb-1">
                       Thực hiện:{" "}
@@ -464,6 +499,8 @@ export default function GroupDetail() {
                       </span>
                     </p>
                   )}
+
+                  {/* Deadline */}
                   {t.deadline && (
                     <p className="text-gray-700 mb-1">
                       Deadline:{" "}
@@ -472,6 +509,8 @@ export default function GroupDetail() {
                       </span>
                     </p>
                   )}
+
+                  {/* Trạng thái */}
                   <p className="mb-3 text-gray-700">
                     Trạng thái:{" "}
                     <span className="font-medium">
@@ -479,7 +518,7 @@ export default function GroupDetail() {
                     </span>
                   </p>
 
-                  {/* Thành viên có thể cập nhật trạng thái nếu là assignee hoặc leader */}
+                  {/* Nút cập nhật trạng thái */}
                   {!group.isEnded && canUpdateStatus(t) && (
                     <div className="flex flex-wrap gap-2 mb-2">
                       {["pending", "in_progress", "completed"].map((status) => (
@@ -524,6 +563,7 @@ export default function GroupDetail() {
                     </div>
                   )}
 
+                  {/* Thời gian tạo */}
                   <p className="text-sm text-gray-400 mt-2">
                     Tạo lúc: {new Date(t.createdAt).toLocaleString()}
                   </p>

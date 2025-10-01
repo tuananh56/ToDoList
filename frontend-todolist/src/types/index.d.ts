@@ -6,6 +6,7 @@ export interface User {
 }
 
 export type TaskStatus = "pending" | "in_progress" | "completed" | "late";
+export type TaskPriority = "low" | "medium" | "high";
 
 export interface Task {
   [x: string]: string | number | Date;
@@ -13,7 +14,8 @@ export interface Task {
   title: string;
   description?: string;
   status: TaskStatus;
-  deadline?: string; // ISO string từ backend
+  priority?: TaskPriority;
+  deadline?: string;
   assignee?: User;
 }
 
@@ -33,5 +35,15 @@ export interface CreateTaskDto {
   title: string;
   description?: string;
   assigneeId?: number;
-  deadline?: string; // ISO string
+  deadline?: string;
+  priority?: TaskPriority;
+}
+
+export interface UpdateTaskDto {
+  title?: string;
+  description?: string;
+  assigneeId?: number;
+  deadline?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority; 
 }
